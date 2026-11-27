@@ -1,5 +1,17 @@
-[toolchain]
-channel = "stable"
-components = ["rustfmt", "clippy"]
-"<rfl:parameter name="filePath">
-E:\User\Documents\Repositories\Telegram\TG-Downloader\rust-toolchain.toml
+[telegram]
+api_id = 123456
+api_hash = "..."
+
+[download]
+chunk_size_kib = 512
+slots_per_bot = 3
+max_attempts_per_chunk = 6
+output_dir = "./downloads"
+
+[[bots]]
+name = "bot1"
+token_env = "TGDL_BOT1_TOKEN"
+
+[[bots]]
+name = "bot2"
+token_env = "TGDL_BOT2_TOKEN"

@@ -1,7 +1,26 @@
-/target
-config.toml
-sessions/
-*.part
-*.progress
-"<rfl:parameter name="filePath">
-E:\User\Documents\Repositories\Telegram\TG-Downloader\.gitignore
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "MIT"
+
+[workspace.dependencies]
+tokio = { version = "1.54", features = ["full"] }
+bytes = "1.12"
+async-trait = "0.1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+toml = "1.2"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+indicatif = "0.18"
+sha2 = "0.11"
+grammers-client = "0.12"
+grammers-session = "0.12"
+grammers-tl-types = "0.12"
+tempfile = "3"
+anyhow = "1"
