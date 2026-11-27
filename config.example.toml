@@ -1,0 +1,5 @@
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+"<rfl:parameter name="filePath">
+E:\User\Documents\Repositories\Telegram\TG-Downloader\rust-toolchain.toml

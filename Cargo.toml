@@ -1,0 +1,7 @@
+/target
+config.toml
+sessions/
+*.part
+*.progress
+"<rfl:parameter name="filePath">
+E:\User\Documents\Repositories\Telegram\TG-Downloader\.gitignore
