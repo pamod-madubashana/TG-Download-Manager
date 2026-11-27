@@ -126,7 +126,9 @@ impl ChunkSource for TelegramSource {
                                 secs,
                             )));
                         }
-                        if r.code == 303 && let Some(v) = r.value {
+                        if r.code == 303
+                            && let Some(v) = r.value
+                        {
                             dc = v as i32;
                             *self.dc_id.write().await = Some(dc);
                             continue;
