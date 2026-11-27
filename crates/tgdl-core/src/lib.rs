@@ -17,4 +17,5 @@ pub mod storage;
 pub use config::Config;
 pub use error::{DownloadError, FetchError};
 pub use model::{ChunkRange, DownloadPlan, FileMeta};
+pub use scheduler::{DownloadStats, Scheduler, SchedulerOptions};
 pub use source::ChunkSource;

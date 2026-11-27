@@ -12,6 +12,7 @@ pub struct MockSource {
     fail_first: Arc<AtomicUsize>,
     flood_first: bool,
     flooded: Arc<std::sync::atomic::AtomicBool>,
+    fetches: Arc<AtomicUsize>,
 }
 
 impl MockSource {
@@ -21,6 +22,7 @@ impl MockSource {
             fail_first: Arc::new(AtomicUsize::new(0)),
             flood_first: false,
             flooded: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            fetches: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -35,11 +37,16 @@ impl MockSource {
         s.flood_first = true;
         s
     }
+
+    pub fn fetch_count(&self) -> usize {
+        self.fetches.load(Ordering::SeqCst)
+    }
 }
 
 #[async_trait]
 impl ChunkSource for MockSource {
     async fn fetch(&self, range: ChunkRange) -> Result<Bytes, FetchError> {
+        self.fetches.fetch_add(1, Ordering::SeqCst);
         if self.flood_first && !self.flooded.swap(true, Ordering::SeqCst) {
             return Err(FetchError::FloodWait(std::time::Duration::from_millis(1)));
         }
