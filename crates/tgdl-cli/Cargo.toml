@@ -1,0 +1,18 @@
+[package]
+name = "tgdl-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "tgdl"
+path = "src/main.rs"
+
+[dependencies]
+tgdl-core = { path = "../tgdl-core" }
+tokio = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+indicatif = { workspace = true }
+anyhow = "1"
