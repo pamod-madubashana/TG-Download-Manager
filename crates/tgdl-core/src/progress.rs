@@ -40,6 +40,10 @@ impl Progress {
             .unwrap_or(0)
     }
 
+    pub fn source_count(&self) -> usize {
+        self.per_source.len()
+    }
+
     pub fn elapsed(&self) -> std::time::Duration {
         self.start.elapsed()
     }

@@ -2,10 +2,11 @@ use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tgdl_core::bots::{add_bots, ensure_chat, listener};
 use tgdl_core::scheduler::SchedulerOptions;
 use tgdl_core::source::ChunkSource;
 use tgdl_core::{
-    DownloadPlan, bots::BotPool, config::Config, model::FileMeta, scheduler::Scheduler, verify,
+    Config, DownloadPlan, bots::BotPool, model::FileMeta, scheduler::Scheduler, verify,
 };
 
 mod args;
@@ -17,9 +18,45 @@ use args::{Cli, Command};
 async fn main() -> Result<()> {
     ui::init_tracing();
     let cli = Cli::parse();
-    let cfg = Config::load(&cli.config)?;
+    let mut cfg = Config::load()?;
 
     match cli.command {
+        Command::Login => {
+            let pool = BotPool::from_config(&cfg).await?;
+            for bot in &pool.bots {
+                println!("signed in as {}", bot.name);
+            }
+        }
+        Command::Setup => {
+            let pool = BotPool::from_config(&cfg).await?;
+            let bot = pool
+                .first()
+                .ok_or_else(|| anyhow::anyhow!("no bots configured"))?;
+            let chat = ensure_chat(&bot.client, &cfg).await?;
+            add_bots(&bot.client, chat, &cfg).await?;
+            cfg.chat.chat_id = Some(chat.id);
+            cfg.chat.access_hash = Some(chat.access_hash);
+            cfg.save()?;
+            println!("chat {} ready with {} bot(s)", chat.id, cfg.bots.len());
+        }
+        Command::Listen => {
+            let mut pool = BotPool::from_config(&cfg).await?;
+            let chat_id = cfg
+                .chat
+                .chat_id
+                .ok_or_else(|| anyhow::anyhow!("run setup first"))?;
+            let updates = pool
+                .take_updates(0)
+                .ok_or_else(|| anyhow::anyhow!("update stream already used"))?;
+            let bot = pool
+                .first()
+                .ok_or_else(|| anyhow::anyhow!("no bots configured"))?;
+            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+            tokio::spawn(listener::listen(bot.client.clone(), updates, chat_id, tx));
+            while let Some(file) = rx.recv().await {
+                println!("queued {} ({})", file.name, file.link);
+            }
+        }
         Command::Download {
             link,
             output,
@@ -61,7 +98,7 @@ async fn main() -> Result<()> {
 
             let out_dir = output.unwrap_or_else(|| PathBuf::from(&cfg.download.output_dir));
             tokio::fs::create_dir_all(&out_dir).await?;
-            let part_path = out_dir.join(format!("{}.part", filename));
+            let part_path = out_dir.join(format!("{filename}.part"));
             let options = SchedulerOptions {
                 slots_per_bot: cfg.download.slots_per_bot.max(1),
                 max_attempts: cfg.download.max_attempts_per_chunk.max(1),

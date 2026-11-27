@@ -3,13 +3,16 @@ use crate::error::DownloadError;
 use grammers_client::Client;
 use grammers_client::sender::SenderPool;
 use grammers_session::storages::SqliteSession;
+use grammers_session::updates::UpdatesLike;
 use std::sync::Arc;
+use tokio::sync::mpsc::Receiver;
 
 pub struct BotHandle {
     pub name: String,
     pub client: Client,
     pub _session: Arc<SqliteSession>,
     pub _runner: tokio::task::JoinHandle<()>,
+    pub updates: Option<Receiver<UpdatesLike>>,
 }
 
 pub struct BotPool {
@@ -21,16 +24,22 @@ impl BotPool {
         std::fs::create_dir_all("sessions").map_err(DownloadError::Io)?;
         let mut bots = Vec::new();
         for b in &cfg.bots {
-            let token = std::env::var(&b.token_env)
-                .map_err(|_| DownloadError::Config(format!("env {} not set", b.token_env)))?;
+            let token = b.token.clone();
+            if token.trim().is_empty() {
+                return Err(DownloadError::Config(format!("{} token missing", b.name)));
+            }
             let session_path = format!("sessions/{}.session", b.name);
             let session = Arc::new(
                 SqliteSession::open(&session_path)
                     .await
                     .map_err(|e| DownloadError::Telegram(e.to_string()))?,
             );
-            let SenderPool { runner, handle, .. } =
-                SenderPool::new(Arc::clone(&session), cfg.telegram.api_id);
+            let SenderPool {
+                runner,
+                handle,
+                updates,
+                ..
+            } = SenderPool::new(Arc::clone(&session), cfg.telegram.api_id);
             let runner_handle = tokio::spawn(async move {
                 let _ = runner.run().await;
             });
@@ -50,6 +59,7 @@ impl BotPool {
                 client,
                 _session: session,
                 _runner: runner_handle,
+                updates: Some(updates),
             });
         }
         Ok(Self { bots })
@@ -57,5 +67,9 @@ impl BotPool {
 
     pub fn first(&self) -> Option<&BotHandle> {
         self.bots.first()
+    }
+
+    pub fn take_updates(&mut self, index: usize) -> Option<Receiver<UpdatesLike>> {
+        self.bots.get_mut(index)?.updates.take()
     }
 }

@@ -15,10 +15,18 @@ use tokio::fs;
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::mpsc;
 
+#[derive(Clone, Debug)]
+pub struct ProgressUpdate {
+    pub downloaded: u64,
+    pub total: u64,
+    pub per_source: Vec<u64>,
+}
+
 pub struct SchedulerOptions {
     pub slots_per_bot: usize,
     pub max_attempts: u32,
     pub retry_base: Duration,
+    pub progress_tx: Option<mpsc::UnboundedSender<ProgressUpdate>>,
 }
 
 impl Default for SchedulerOptions {
@@ -27,6 +35,7 @@ impl Default for SchedulerOptions {
             slots_per_bot: 3,
             max_attempts: 6,
             retry_base: Duration::from_millis(50),
+            progress_tx: None,
         }
     }
 }
@@ -40,6 +49,7 @@ pub(super) struct Shared {
     pub remaining: AtomicUsize,
     pub cooldowns: Vec<Mutex<Option<Instant>>>,
     pub retry_base: Duration,
+    pub progress_tx: Option<mpsc::UnboundedSender<ProgressUpdate>>,
 }
 
 impl Shared {
@@ -133,6 +143,7 @@ impl Scheduler {
             remaining,
             cooldowns: (0..sources.len()).map(|_| Mutex::new(None)).collect(),
             retry_base: options.retry_base,
+            progress_tx: options.progress_tx.clone(),
         });
 
         let (tx, mut rx) = mpsc::channel::<(usize, usize, bytes::Bytes)>(
@@ -171,6 +182,16 @@ impl Scheduler {
                 writer_shared
                     .progress
                     .add_for(source_idx, bytes.len() as u64);
+                if let Some(tx) = &writer_shared.progress_tx {
+                    let per_source = (0..writer_shared.progress.source_count())
+                        .map(|i| writer_shared.progress.source_bytes(i))
+                        .collect();
+                    let _ = tx.send(ProgressUpdate {
+                        downloaded: writer_shared.progress.downloaded(),
+                        total: writer_planner.meta.size,
+                        per_source,
+                    });
+                }
                 writer_shared.remaining.fetch_sub(1, Ordering::SeqCst);
             }
             let _ = file.flush().await;
