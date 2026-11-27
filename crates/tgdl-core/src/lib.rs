@@ -14,8 +14,9 @@ pub mod bots;
 pub mod scheduler;
 pub mod storage;
 
-pub use config::Config;
+pub use bots::BotPool;
+pub use config::{BotConfig, ChatConfig, Config, DownloadConfig, TelegramConfig};
 pub use error::{DownloadError, FetchError};
 pub use model::{ChunkRange, DownloadPlan, FileMeta};
-pub use scheduler::{DownloadStats, Scheduler, SchedulerOptions};
+pub use scheduler::{DownloadStats, ProgressUpdate, Scheduler, SchedulerOptions};
 pub use source::ChunkSource;
