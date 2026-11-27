@@ -15,4 +15,4 @@ clap = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 indicatif = { workspace = true }
-anyhow = "1"
+anyhow = { workspace = true }

@@ -4,15 +4,15 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(name = "tgdl", version, about = "Telegram multi-bot downloader")]
 pub struct Cli {
-    #[arg(long, default_value = "config.toml")]
-    pub config: PathBuf,
-
     #[command(subcommand)]
     pub command: Command,
 }
 
 #[derive(Subcommand)]
 pub enum Command {
+    Login,
+    Setup,
+    Listen,
     Download {
         link: String,
         #[arg(short, long)]
